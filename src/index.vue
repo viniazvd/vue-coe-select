@@ -1,37 +1,36 @@
 <template>
-  <container
-    v-bind="$attrs"
-    :class="containerClasses"
-    :validation="validation"
-  >
+  <div :class="containerClasses">
     <div class="inner">
+      <label v-if="label" class="label">
+        {{ label }}
+        <span v-if="required" class="required">*</span>
+      </label>
+
       <div
         class="input"
         :tabindex="tabindex"
-        @click="openingHandler"
-        @focus="handlerFocus"
+        @click.capture="openingHandler"
+        @focus.native="handlerFocus"
         v-click-outside="outside"
       >
-        <span v-if="Array.isArray(this.value) && this.multiple && this.value.length" ref="selectable" class="selectable" @click="removeSelected" />
+        <span v-if="this.multiple && this.value.length" ref="selectable" class="selectable" @click="removeSelected" />
         <span
           ref="searchable"
           contenteditable
-          :class="['selecteds', { '-placeholder': !selected }]"
+          :class="['selecteds', { '-placeholder': selected === placeholder }]"
           @keydown.self.down.prevent="pointerForward"
           @keydown.self.up.prevent="pointerBackward"
           @keydown.enter.tab.stop.self="addPointerElement"
           @keydown.tab.stop.self="escHandler"
           @keyup.esc.passive="escHandler"
           @input="search"
-          @click="resetQuery"
-        >
-          <span class="placeholder">{{ selected }}</span>
-        </span>
+        />
+          <!-- <span class="placeholder">{{ selected }}</span> -->
 
         <span class="icon">{{ isOpened ? '▼' : '▲' }}</span>
       </div>
 
-      <div v-if="isOpened && options.length && !validation" class="items">
+      <div v-if="isOpened && options.length" class="items">
         <div
           v-for="(option, index) in options"
           :key="index"
@@ -45,18 +44,14 @@
         </div>
       </div>
     </div>
-  </container>
+  </div>
 </template>
 
 <script>
-import container from './components/Container'
-
 import { equals } from './utils/equals'
 import matches from './utils/matches'
 
 export default {
-  components: { container },
-
   directives: {
     'click-outside': {
       bind: function (el, binding, vNode) {
@@ -91,12 +86,17 @@ export default {
       type: String,
       default: 'Selecione uma opção'
     },
+    label: String,
+    required: Boolean,
+    validation: {
+      type: [String, Boolean],
+      required: false
+    },
     multiple: Boolean,
     max: [Number, String],
     displayBy: String,
     trackBy: String,
     clearOnSelect: Boolean,
-    validation: [String, Boolean],
     disabled: Boolean,
     success: Boolean
   },
@@ -117,14 +117,24 @@ export default {
     }
   },
 
+  mounted () {
+    this.$refs['searchable'].innerHTML = this.placeholder || ''
+  },
+
   computed: {
+    errors () {
+      if (!this.items.some(item => this.displayBy && typeof item === 'object')) return ['You need to set displayBy.']
+
+      if (this.multiple && !Array.isArray(this.value)) return ['Value must be a array']
+
+      if (this.validation) return [this.validation]
+    },
+
     containerClasses () {
       return [ 'c-select',
         {
           '-is-opened': this.isOpened,
-          '-has-validation': this.validation || this.success,
-          '-disabled': this.disabled,
-          '-success': this.success
+          '-disabled': this.disabled
         }
       ]
     },
@@ -149,20 +159,23 @@ export default {
         }
       },
       set (index) {
-        let tracked = Array.isArray(this.value)
-          ? this.options[index]
-          : (this.trackBy && this.options[index][this.trackBy]) || this.options[index]
-
-        if (typeof index !== 'number') {
+        // invalid search
+        if (index < 0) {
           this.outside()
-          this.$emit('input', index)
-        } else {
-          if (!Array.isArray(this.value)) {
-            this.outside()
-            this.$emit('input', tracked)
-          }
+          return
+        }
 
-          if (Array.isArray(this.value) && this.max && this.value.length < this.max) {
+        // remove
+        if (typeof index !== 'number') {
+          this.$emit('input', index)
+          this.outside()
+          return
+        }
+
+        let tracked = (this.trackBy && this.items[index][this.trackBy]) || this.items[index]
+
+        if (this.multiple) {
+          if (this.max && this.value.length < this.max) {
             const values = [ ...this.value ]
             const alreadyExist = values.find(value => value === tracked)
 
@@ -170,10 +183,7 @@ export default {
               values.push(tracked)
             } else {
               for (let index = values.length - 1; index >= 0; index--) {
-                if (values[index] === tracked) {
-                  values.splice(index, 1)
-                  break
-                }
+                if (values[index] === tracked) values.splice(index, 1); break
               }
             }
 
@@ -187,31 +197,35 @@ export default {
           } else {
             this.isOpened = false
           }
+        } else {
+          this.outside()
+          this.$emit('input', tracked)
         }
       }
     },
 
     options () {
-      const items = (this.multiple && this.items.map(item => (this.displayBy && item[this.displayBy]) || item)) || this.items
+      if (this.errors) return this.errors
+
+      const items = this.items.map(item => (this.displayBy && item[this.displayBy]) || item)
 
       return this.searchQuery
         ? items.filter(item => {
-          const itemName = (!!this.displayBy && item[this.displayBy]) || item
-
-          return typeof itemName === 'string'
-            ? matches(this.searchQuery.toLowerCase(), itemName.toLowerCase())
-            : matches(this.searchQuery.toString().toLowerCase(), itemName.toString().toLowerCase())
+          return typeof item === 'string'
+            ? matches(this.searchQuery.toLowerCase(), item.toLowerCase())
+            : matches(this.searchQuery.toString().toLowerCase(), item.toString().toLowerCase())
         })
         : items
     }
   },
 
   methods: {
-    itemClasses (item, index) {
+    itemClasses (option, index) {
       return [
         {
-          '-selected': this.isSelected(item),
-          '-active': index === this.pointer
+          '-selected': this.isSelected(option, index),
+          '-active': index === this.pointer,
+          '-disabled': this.errors
         }
       ]
     },
@@ -249,19 +263,19 @@ export default {
 
     resetQuery () {
       this.$refs['searchable'].innerHTML = ''
-
-      if (!this.multiple) this.$emit('input', this.value)
     },
 
-    isSelected (item) {
+    isSelected (option, index) {
       if (!this.selected) return false
 
       if (this.multiple) {
-        return this.selected.includes(item)
+        return this.selected.includes(option)
       } else {
-        return this.trackBy
-          ? this.selected[this.trackBy] === item[this.trackBy]
-          : (this.value && equals(item, this.value)) || ''
+        console.log(option, this.selected)
+        return option === this.selected
+        // return this.trackBy
+        //   ? this.selected[this.trackBy] === option[this.trackBy]
+        //   : (this.value && equals(option, this.value)) || ''
       }
     },
 
@@ -283,24 +297,23 @@ export default {
 
     blur () {
       setTimeout(() => {
-        const contentDefault = this.items.find(item => item.name === this.value)
-        const content =
-          (this.multiple && this.value.join('</span><span class="selected">')) ||
-          (typeof this.selected === 'object' && this.selected[this.displayBy]) ||
-          (contentDefault && contentDefault[this.displayBy]) ||
-          this.value ||
-          this.placeholder
+        if (this.multiple) {
+          const contentDefault = this.items.find(item => item.name === this.value)
+          const content = contentDefault || this.value.join('</span><span class="selected">')
 
-        if (this.$refs['selectable'] && this.multiple && !!content) {
-          this.$refs['selectable'].innerHTML = '<span class="selected">' + content
-          this.$refs['searchable'].innerHTML = ''
+          if (content && this.$refs['selectable']) {
+            this.$refs['selectable'].innerHTML = '<span class="selected">' + content
+            this.$refs['searchable'].innerHTML = ''
+          }
+
+          if (!this.value.length) this.$refs['searchable'].innerHTML = this.placeholder
+        } else {
+          this.$refs['searchable'].innerHTML = this.value || this.placeholder || ''
         }
-        if (this.$refs['searchable'] && !this.multiple) this.$refs['searchable'].innerHTML = (!this.value && '') || this.value
-        if (Array.isArray(this.value) && !this.value.length) this.$refs['searchable'].innerHTML = '<span class="placeholder">' + this.placeholder + '</span>'
 
         this.searchQuery = ''
         this.pointerReset()
-      }, 100)
+      }, 200)
     },
 
     pointerReset () {
@@ -425,7 +438,7 @@ $c-input-disabled-color:            #bdc0d1 !default;
         flex-grow: 1;
         cursor: text;
 
-        & > .placeholder {
+        &.-placeholder {
           color: gray;
           font-size: 14px;
           font-weight: 400;
@@ -470,6 +483,7 @@ $c-input-disabled-color:            #bdc0d1 !default;
 
         &.-selected { font-weight: 700; }
         &.-active { background-color: $vue-coe-select-highlight-background; }
+        &.-disabled { cursor: not-allowed; }
 
         &:first-child {
           border-top-left-radius: 8px;
@@ -498,6 +512,35 @@ $c-input-disabled-color:            #bdc0d1 !default;
             color: pink;
           }
         }
+      }
+    }
+
+    & > .label,
+    & > .validation {
+      flex: 100%;
+      width: 100%;
+      display: block;
+    }
+
+    & > .label {
+      color: black;
+      text-transform: uppercase;
+      font-size: 12px;
+      line-height: 16px;
+      margin-bottom: 9px;
+    }
+
+    & > .validation {
+      display: flex;
+      padding-top: 5px;
+      align-items: center;
+      color: red;
+      position: absolute;
+
+      & > .text {
+        font-size: 12px;
+        padding-left: 5px;
+        white-space: nowrap;
       }
     }
 

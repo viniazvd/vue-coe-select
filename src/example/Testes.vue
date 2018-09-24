@@ -5,7 +5,6 @@
       track-by="slug"
       display-by="name"
       placeholder="Selecione uma opção"
-      max="2"
       :items="items"
       v-model="data1"
     />
