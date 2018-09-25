@@ -6,71 +6,65 @@
         <span v-if="required" class="required">*</span>
       </label>
 
-      <div
-        class="input"
-        :tabindex="tabindex"
-        @click.capture="openingHandler"
-        @focus.native="handlerFocus"
-        v-click-outside="outside"
-      >
-        <span v-if="this.multiple && this.value.length" ref="selectable" class="selectable" @click="removeSelected" />
+      <div class="input" :tabindex="tabindex" @click.capture="openingHandler" v-click-outside="outside">
         <span
+          v-for="(option, index) in selecteds"
+          :key="index"
+          ref="selectable"
+          class="selectable"
+          @click="removeSelected(index)"
+        >
+          <span v-if="option" class="selected">{{ selecteds[index] }}</span>
+        </span>
+
+        <input
           ref="searchable"
-          contenteditable
-          :class="['selecteds', { '-placeholder': selected === placeholder }]"
+          :class="['selecteds', { '-placeholder': selected === placeholder || !selected }]"
+          :value="searchableValue"
           @keydown.self.down.prevent="pointerForward"
           @keydown.self.up.prevent="pointerBackward"
           @keydown.enter.tab.stop.self="addPointerElement"
           @keydown.tab.stop.self="escHandler"
           @keyup.esc.passive="escHandler"
+          @focus="focused = clearOnSelect"
+          @blur="focused = false"
           @input="search"
         />
-          <!-- <span class="placeholder">{{ selected }}</span> -->
-
-        <span class="icon">{{ isOpened ? '▼' : '▲' }}</span>
+        <slot name="select-icon">
+          <span class="icon">{{ isOpened ? '▼' : '▲' }}</span>
+        </slot>
       </div>
 
       <div v-if="isOpened && options.length" class="items">
-        <div
-          v-for="(option, index) in options"
-          :key="index"
-          class="item"
-          :class="itemClasses(option, index)"
-          aria-hidden="true"
-          @click.stop="selected = index"
-          @mouseenter.self="pointerSet(index)"
-        >
-          <span class="text">{{ displayBy && option[displayBy] || option }}</span>
-        </div>
+        <slot :options="options" name="options">
+          <div
+            v-for="(option, index) in options"
+            :key="index"
+            class="item"
+            :class="itemClasses(option, index)"
+            aria-hidden="true"
+            @click.stop="selected = index"
+            @mouseenter.self="pointerSet(index)"
+          >
+            <slot :option="option" name="option">
+              <span class="text">{{ displayBy && option[displayBy] || option }}</span>
+            </slot>
+          </div>
+        </slot>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { equals } from './utils/equals'
+import Pointer from './mixins/pointer'
+
+import clickOutside from './directives/clickOutside'
+
 import matches from './utils/matches'
 
 export default {
-  directives: {
-    'click-outside': {
-      bind: function (el, binding, vNode) {
-        const handler = (e) => {
-          if (!el.contains(e.target) && el !== e.target) {
-            binding.value(e)
-          }
-        }
-        el.__vueClickOutside__ = handler
-
-        document.addEventListener('click', handler)
-      },
-
-      unbind: function (el, binding) {
-        document.removeEventListener('click', el.__vueClickOutside__)
-        el.__vueClickOutside__ = null
-      }
-    }
-  },
+  directives: clickOutside,
 
   props: {
     tabindex: {
@@ -96,29 +90,21 @@ export default {
     max: [Number, String],
     displayBy: String,
     trackBy: String,
-    clearOnSelect: Boolean,
-    disabled: Boolean,
-    success: Boolean
+    clearOnSelect: {
+      type: Boolean,
+      default: true
+    },
+    disabled: Boolean
   },
+
+  mixins: [ Pointer ],
 
   data () {
     return {
-      pointer: -1,
+      focused: false,
       isOpened: false,
       searchQuery: ''
     }
-  },
-
-  watch: {
-    value (v) {
-      if (!v) {
-        this.synchronizeOnReset()
-      }
-    }
-  },
-
-  mounted () {
-    this.$refs['searchable'].innerHTML = this.placeholder || ''
   },
 
   computed: {
@@ -139,10 +125,18 @@ export default {
       ]
     },
 
+    selecteds () {
+      if (!this.multiple || (this.value && !this.value.length)) return []
+
+      const defaultValue = this.value.filter(value => {
+        return !!this.items.find(item => item !== value)
+      })
+
+      return defaultValue.map(value => (this.displayBy && value[this.displayBy]) || value)
+    },
+
     selected: {
       get () {
-        if (this.placeholder && (Array.isArray(this.value) ? !this.value.length : !this.value)) return this.placeholder
-
         const value = this.items
           .find(v => v === (Array.isArray(this.value) && this.value && this.displayBy && this.value[this.displayBy]) || this.value)
 
@@ -172,27 +166,18 @@ export default {
           return
         }
 
-        let tracked = (this.trackBy && this.items[index][this.trackBy]) || this.items[index]
+        const options = !this.searchQuery ? this.items : this.options
+        let tracked = (this.trackBy && options[index][this.trackBy]) || options[index]
 
         if (this.multiple) {
           if (this.max && this.value.length < this.max) {
-            const values = [ ...this.value ]
-            const alreadyExist = values.find(value => value === tracked)
+            const alreadyExist = this.value.find(value => value === tracked)
 
             if (!alreadyExist) {
-              values.push(tracked)
-            } else {
-              for (let index = values.length - 1; index >= 0; index--) {
-                if (values[index] === tracked) values.splice(index, 1); break
-              }
-            }
-
-            tracked = values
-
-            // check if the last searched item is valid
-            if (tracked[tracked.length - 1]) {
               this.outside()
-              this.$emit('input', tracked)
+              this.$emit('input', [ ...this.value, options[index] ])
+            } else {
+              // remover qnd clicar em um item já existente
             }
           } else {
             this.isOpened = false
@@ -207,20 +192,36 @@ export default {
     options () {
       if (this.errors) return this.errors
 
-      const items = this.items.map(item => (this.displayBy && item[this.displayBy]) || item)
-
       return this.searchQuery
-        ? items.filter(item => {
-          return typeof item === 'string'
-            ? matches(this.searchQuery.toLowerCase(), item.toLowerCase())
-            : matches(this.searchQuery.toString().toLowerCase(), item.toString().toLowerCase())
+        ? this.items.filter(item => {
+          const _item = (this.displayBy && item[this.displayBy]) || item
+
+          return typeof _item === 'string'
+            ? matches(this.searchQuery.toLowerCase(), _item.toLowerCase())
+            : matches(this.searchQuery.toString().toLowerCase(), _item.toString().toLowerCase())
         })
-        : items
+        : this.items
+    },
+
+    searchableValue () {
+      if (this.focused && !this.searchQuery) return ''
+      if ((!this.value || !this.value.length) && !this.searchQuery) return [ this.placeholder ]
+
+      if (!this.searchQuery) {
+        if (this.multiple) {
+          return (!this.selecteds.length && '') || ''
+        } else {
+          return this.value
+        }
+      } else {
+        return this.searchQuery
+      }
     }
   },
 
   methods: {
     itemClasses (option, index) {
+      console.log(option)
       return [
         {
           '-selected': this.isSelected(option, index),
@@ -230,125 +231,53 @@ export default {
       ]
     },
 
-    synchronizeOnReset () {
-      this.$refs.searchable.innerHTML = this.placeholder || ''
-    },
-
-    handlerFocus () {
-      this.isOpened = true
-
-      this.resetQuery()
-      this.setFocus()
-    },
-
     openingHandler () {
       this.isOpened = !this.isOpened
 
-      this.resetQuery()
       this.setFocus()
     },
 
     escHandler () {
-      if (this.isOpened) {
-        this.outside()
-        this.unsetFocus()
-      }
+      if (this.isOpened) this.outside()
     },
 
-    removeSelected ({ target: { innerText } }) {
-      const afterRemove = [ ...this.value ].filter(v => v !== innerText)
+    removeSelected (index) {
+      const afterRemove = this.value.filter(v => v !== this.value[index])
 
       this.selected = afterRemove
-    },
-
-    resetQuery () {
-      this.$refs['searchable'].innerHTML = ''
     },
 
     isSelected (option, index) {
       if (!this.selected) return false
 
-      if (this.multiple) {
-        return this.selected.includes(option)
+      if (this.multiple && this.value[index]) {
+        console.log('option', option)
+        console.log('this.value', this.value)
+
+        return false
       } else {
-        console.log(option, this.selected)
-        return option === this.selected
-        // return this.trackBy
-        //   ? this.selected[this.trackBy] === option[this.trackBy]
-        //   : (this.value && equals(option, this.value)) || ''
+        const selected = (this.trackBy && option[this.trackBy]) || option
+
+        return selected === this.value
       }
     },
 
     outside () {
       this.isOpened = false
 
-      this.blur()
+      this.searchQuery = ''
+      this.pointerReset()
     },
 
-    clear () {
-      this.itemSelected = (this.clearOnSelect && '') || this.itemSelected
-    },
-
-    search ({ target: { textContent } }) {
+    search ({ target: { value } }) {
       this.isOpened = true
+      this.focused = false
 
-      this.searchQuery = textContent
-    },
-
-    blur () {
-      setTimeout(() => {
-        if (this.multiple) {
-          const contentDefault = this.items.find(item => item.name === this.value)
-          const content = contentDefault || this.value.join('</span><span class="selected">')
-
-          if (content && this.$refs['selectable']) {
-            this.$refs['selectable'].innerHTML = '<span class="selected">' + content
-            this.$refs['searchable'].innerHTML = ''
-          }
-
-          if (!this.value.length) this.$refs['searchable'].innerHTML = this.placeholder
-        } else {
-          this.$refs['searchable'].innerHTML = this.value || this.placeholder || ''
-        }
-
-        this.searchQuery = ''
-        this.pointerReset()
-      }, 200)
-    },
-
-    pointerReset () {
-      this.pointer = -1
-    },
-
-    pointerSet (option) {
-      this.pointer = option
-    },
-
-    pointerForward () {
-      if (this.pointer < this.items.length - 1) this.pointer++
-    },
-
-    pointerBackward () {
-      if (this.pointer > 0) this.pointer--
+      this.searchQuery = value
     },
 
     setFocus () {
       this.$refs.searchable.focus()
-    },
-
-    unsetFocus () {
-      this.$refs.searchable.blur()
-    },
-
-    addPointerElement ({ key } = 'Enter') {
-      if (this.items.length > 0 && key === 'Enter') {
-        this.selected = this.pointer
-
-        this.$nextTick(() => {
-          this.unsetFocus()
-          this.outside()
-        })
-      }
     }
   }
 }
@@ -427,16 +356,22 @@ $c-input-disabled-color:            #bdc0d1 !default;
       }
 
       & > .selecteds {
-        display: inline-flex;
+        display: flex;
+        flex-wrap: wrap;
         align-items: center;
         color: black;
         padding-left: 10px;
         padding-right: 35px;
         line-height: 40px;
-        min-height: inherit;
         outline: none;
         flex-grow: 1;
         cursor: text;
+        border: 1px solid #E9EAEE;
+        height: 38px;
+        background-color: white;
+        border-radius: 3px;
+        font-size: 14px;
+        border-left: unset;
 
         &.-placeholder {
           color: gray;

@@ -5,9 +5,24 @@
       track-by="slug"
       display-by="name"
       placeholder="Selecione uma opção"
+      :clear-on-select="false"
       :items="items"
       v-model="data1"
     />
+
+    <c-select
+      label="single"
+      track-by="slug"
+      display-by="name"
+      placeholder="Selecione uma opção"
+      clear-on-select
+      :items="items"
+      v-model="data2"
+    >
+      <div slot="option" slot-scope="{ option }">
+        {{ option['slug'] }} - {{ option['name'] }}
+      </div>
+    </c-select>
 
     <c-select
       label="multiple"
@@ -17,8 +32,8 @@
       multiple
       max="2"
       :items="items"
-      :validation="data2.length >= 2 && `Máximo de 2 opções selecionadas`"
-      v-model="data2"
+      :validation="data3.length >= 2 && `Máximo de 2 opções selecionadas`"
+      v-model="data3"
     />
   </div>
 </template>
@@ -34,7 +49,10 @@ export default {
   data () {
     return {
       data1: '',
-      data2: [],
+      data2: '',
+      data3: [
+        { slug: 'slug_boladao2', name: 'coe2' }
+      ],
       items: [
         { slug: 'slug_boladao1', name: 'coe1' },
         { slug: 'slug_boladao2', name: 'coe2' },
