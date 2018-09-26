@@ -125,9 +125,7 @@ export default {
     selecteds () {
       if (!this.multiple || (this.value && !this.value.length)) return []
 
-      const defaultValue = this.value.filter(value => {
-        return !!this.items.find(item => item !== value)
-      })
+      const defaultValue = this.value.filter(value => !!this.items.find(item => item !== value))
 
       return defaultValue.map(value => (this.displayBy && value[this.displayBy]) || value)
     },
@@ -164,7 +162,7 @@ export default {
         }
 
         const options = !this.searchQuery ? this.items : this.options
-        let tracked = (this.trackBy && options[index][this.trackBy]) || options[index]
+        const tracked = (this.trackBy && options[index][this.trackBy]) || options[index]
 
         if (this.multiple) {
           const value = v => ((this.trackBy && v[this.trackBy]) || v).toString()
@@ -254,6 +252,7 @@ export default {
     outside () {
       this.isOpened = false
       this.focused = false
+      this.unsetFocus()
 
       this.searchQuery = ''
       this.pointerReset()
@@ -261,6 +260,10 @@ export default {
 
     setFocus () {
       this.$refs.searchable.focus()
+    },
+
+    unsetFocus () {
+      this.$refs.searchable.blur()
     }
   },
 
