@@ -7,7 +7,7 @@
       </label>
 
       <div class="input" :tabindex="tabindex" @click.capture="openingHandler" v-click-outside="outside">
-        <span
+        <div
           v-for="(option, index) in selecteds"
           :key="index"
           ref="selectable"
@@ -15,7 +15,7 @@
           @click="removeSelected(index)"
         >
           <span v-if="option" class="selected">{{ selecteds[index] }}</span>
-        </span>
+        </div>
 
         <input
           ref="searchable"
@@ -30,9 +30,7 @@
           @blur="focused = false"
           @input="search"
         />
-        <slot name="select-icon">
-          <span class="icon">{{ isOpened ? '▼' : '▲' }}</span>
-        </slot>
+        <span class="icon">{{ isOpened ? '▼' : '▲' }}</span>
       </div>
 
       <div v-if="isOpened && options.length" class="items">
@@ -58,6 +56,7 @@
 
 <script>
 import Pointer from './mixins/pointer'
+import Searchable from './mixins/searchable'
 
 import clickOutside from './directives/clickOutside'
 
@@ -87,7 +86,6 @@ export default {
       required: false
     },
     multiple: Boolean,
-    max: [Number, String],
     displayBy: String,
     trackBy: String,
     clearOnSelect: {
@@ -97,13 +95,12 @@ export default {
     disabled: Boolean
   },
 
-  mixins: [ Pointer ],
+  mixins: [ Pointer, Searchable ],
 
   data () {
     return {
-      focused: false,
       isOpened: false,
-      searchQuery: ''
+      focused: false
     }
   },
 
@@ -170,14 +167,23 @@ export default {
         let tracked = (this.trackBy && options[index][this.trackBy]) || options[index]
 
         if (this.multiple) {
-          if (this.max && this.value.length < this.max) {
-            const alreadyExist = this.value.find(value => value === tracked)
+          const value = v => ((this.trackBy && v[this.trackBy]) || v).toString()
+
+          if (!this.validation) {
+            const exists = v => value(v) === tracked.toString()
+            const alreadyExist = this.value.find(exists)
 
             if (!alreadyExist) {
               this.outside()
+
               this.$emit('input', [ ...this.value, options[index] ])
             } else {
-              // remover qnd clicar em um item já existente
+              this.outside()
+
+              const repeated = v => value(v) !== tracked.toString()
+              const afterRemove = this.value.filter(repeated)
+
+              this.$emit('input', afterRemove)
             }
           } else {
             this.isOpened = false
@@ -201,27 +207,11 @@ export default {
             : matches(this.searchQuery.toString().toLowerCase(), _item.toString().toLowerCase())
         })
         : this.items
-    },
-
-    searchableValue () {
-      if (this.focused && !this.searchQuery) return ''
-      if ((!this.value || !this.value.length) && !this.searchQuery) return [ this.placeholder ]
-
-      if (!this.searchQuery) {
-        if (this.multiple) {
-          return (!this.selecteds.length && '') || ''
-        } else {
-          return this.value
-        }
-      } else {
-        return this.searchQuery
-      }
     }
   },
 
   methods: {
     itemClasses (option, index) {
-      console.log(option)
       return [
         {
           '-selected': this.isSelected(option, index),
@@ -250,35 +240,32 @@ export default {
     isSelected (option, index) {
       if (!this.selected) return false
 
-      if (this.multiple && this.value[index]) {
-        console.log('option', option)
-        console.log('this.value', this.value)
+      const _option = (this.trackBy && option[this.trackBy]) || option
 
-        return false
+      if (this.multiple) {
+        const _selected = v => ((this.trackBy && v[this.trackBy]) || v).toString() === _option.toString()
+
+        return this.value.find(v => _selected(v))
       } else {
-        const selected = (this.trackBy && option[this.trackBy]) || option
-
-        return selected === this.value
+        return _option === this.value
       }
     },
 
     outside () {
       this.isOpened = false
+      this.focused = false
 
       this.searchQuery = ''
       this.pointerReset()
     },
 
-    search ({ target: { value } }) {
-      this.isOpened = true
-      this.focused = false
-
-      this.searchQuery = value
-    },
-
     setFocus () {
       this.$refs.searchable.focus()
     }
+  },
+
+  install (Vue, { name = 'vue-coe-selected' } = {}) {
+    Vue.component(name, this)
   }
 }
 </script>
@@ -323,7 +310,7 @@ $c-input-disabled-color:            #bdc0d1 !default;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      height: 40px;
+      min-height: 38px;
       background-color: white;
       border-radius: 3px;
       font-size: 14px;
@@ -367,11 +354,11 @@ $c-input-disabled-color:            #bdc0d1 !default;
         flex-grow: 1;
         cursor: text;
         border: 1px solid #E9EAEE;
-        height: 38px;
+        min-height: 38px;
         background-color: white;
         border-radius: 3px;
         font-size: 14px;
-        border-left: unset;
+        border: unset;
 
         &.-placeholder {
           color: gray;

@@ -30,11 +30,10 @@
       display-by="name"
       placeholder="Selecione uma opção"
       multiple
-      max="2"
       :items="items"
-      :validation="data3.length >= 2 && `Máximo de 2 opções selecionadas`"
       v-model="data3"
     />
+      <!-- :validation="data3.length >= 3 && `Máximo de 3 opções selecionadas`" -->
   </div>
 </template>
 
