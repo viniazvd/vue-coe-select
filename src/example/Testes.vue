@@ -2,7 +2,7 @@
   <div id="app" class="container">
     <c-select
       label="single"
-      track-by="slug"
+      display="slug"
       display-by="name"
       placeholder="Selecione uma opção"
       :clear-on-select="false"
@@ -12,7 +12,7 @@
 
     <c-select
       label="single"
-      track-by="slug"
+      display="slug"
       display-by="name"
       placeholder="Selecione uma opção"
       clear-on-select
@@ -26,7 +26,7 @@
 
     <c-select
       label="multiple"
-      track-by="slug"
+      display="slug"
       display-by="name"
       placeholder="Selecione uma opção"
       multiple
@@ -37,7 +37,7 @@
 
     <c-select
       label="multiple"
-      track-by="slug"
+      display="slug"
       display-by="name"
       placeholder="Selecione uma opção"
       :validation="data4.length >= 3 && `Máximo de 3 opções selecionadas`"
