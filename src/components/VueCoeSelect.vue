@@ -419,12 +419,12 @@ $c-input-disabled-color:            #bdc0d1 !default;
     }
 
     .items {
-      border-radius: 8px;
-      background-color: white.
+      z-index: 2;
+      border-radius: 5px;
+      background-color: white;
       max-height: 300px;
       overflow-y: auto;
       overflow-x: hidden;
-      z-index: 2;
       width: 100%;
       box-sizing: border-box;
       position: absolute;
@@ -443,15 +443,15 @@ $c-input-disabled-color:            #bdc0d1 !default;
         &.-active { background-color: $vue-coe-select-highlight-background; }
         &.-disabled { cursor: not-allowed; }
 
-        // &:first-child {
-        //   border-top-left-radius: 8px;
-        //   border-top-right-radius: 8px;
-        // }
+        &:first-child {
+          border-top-left-radius: 5px;
+          border-top-right-radius: 5px;
+        }
 
-        // &:last-child {
-        //   border-bottom-left-radius: 8px;
-        //   border-bottom-right-radius: 8px;
-        // }
+        &:last-child {
+          border-bottom-left-radius: 5px;
+          border-bottom-right-radius: 5px;
+        }
 
         & > .option-container {
           width: 100%;
