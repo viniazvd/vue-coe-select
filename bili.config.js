@@ -1,15 +1,14 @@
-const { name } = require('./package.json')
+// import css from 'rollup-plugin-css-only'
 const vue = require('rollup-plugin-vue').default
-const css = require('rollup-plugin-css-only')
 
 module.exports = {
-  js: 'buble',
   input: 'src/index.js',
-  banner: true,
-  format: ['umd', 'umd-min', 'cjs', 'es'],
-  filename: name + '[suffix].js',
+  output: {
+    format: 'esm',
+    file: 'dist/vue-coe-select.esm.js'
+  },
   plugins: [
-    css({ output: `dist/${name}.css` }),
-    vue({ css: false })
+    // css(),
+    vue()
   ]
 }
