@@ -298,6 +298,10 @@ export default {
     unsetFocus () {
       this.$refs.searchable.blur()
     }
+  },
+
+  install (Vue) {
+    Vue.component('VueCoeSelect', this)
   }
 }
 </script>
