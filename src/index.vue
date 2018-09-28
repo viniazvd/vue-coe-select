@@ -168,6 +168,8 @@ export default {
           ? this.hideSelecteds
           : !this.searchQuery ? this.items : this.options
 
+        if (!options.length) return false
+
         const tracked = (options && this.display && options[index][this.display]) || options[index]
 
         if (this.multiple) {
@@ -398,8 +400,8 @@ $c-input-disabled-color:            #bdc0d1 !default;
       &:hover,
       &:active,
       &:focus {
-        border-color: green;
-        box-shadow: 0 0 0 2px green;
+        border-color: red;
+        box-shadow: 0 0 0 2px red;
       }
     }
 
