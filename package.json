@@ -1,6 +1,6 @@
 {
   "name": "vue-coe-select",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "",
   "readmeFilename": "README.md",
   "keywords": [
@@ -11,7 +11,8 @@
     "dropdown",
     "component"
   ],
-  "main": "dist/vue-coe-select.js",
+  "main": "dist/vue-coe-select.esm.js",
+  "module": "dist/vue-coe-select.esm.js",
   "files": [
     "dist/",
     "README.md",
