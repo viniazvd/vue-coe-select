@@ -1,7 +1,7 @@
 const { name } = require('./package.json')
 
 const vue = require('rollup-plugin-vue').default
-const css = require('rollup-plugin-css-only')
+const sass = require('rollup-plugin-sass')
 
 module.exports = {
   js: 'buble',
@@ -10,7 +10,7 @@ module.exports = {
   format: ['umd', 'umd-min', 'cjs', 'es'],
   filename: name + '[suffix].js',
   plugins: [
-    css({ output: `dist/${name}.css` }),
-    vue({ css: false })
+    sass(),
+    vue()
   ]
 }
