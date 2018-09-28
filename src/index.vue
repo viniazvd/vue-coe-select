@@ -176,12 +176,10 @@ export default {
             const alreadyExist = this.value.find(exists)
 
             if (!alreadyExist) {
-              console.log('1')
               this.outside()
 
               this.$emit('input', [ ...this.value, options[index] ])
             } else {
-              console.log('2')
               this.outside()
 
               const repeated = v => value(v) !== tracked.toString()
