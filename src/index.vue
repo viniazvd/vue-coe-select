@@ -300,7 +300,7 @@ export default {
     }
   },
 
-  install (Vue, { name = 'vue-coe-selected' } = {}) {
+  install (Vue, { name = 'VueCoeSelected' } = {}) {
     Vue.component(name, this)
   }
 }
