@@ -45,7 +45,12 @@
             @mouseenter.self="pointerSet(index)"
           >
             <slot :option="option" name="option">
-              <span class="text">{{ displayBy && option[displayBy] || option }}</span>
+              <div class="option-container">
+                <span class="text">{{ displayBy && option[displayBy] || option }}</span>
+                <span class="disclaimer">
+                  {{ !isSelected(option, index) ? optionSelectPlaceholder : optionUnselectPlaceholder }}
+                </span>
+              </div>
             </slot>
           </div>
         </slot>
@@ -78,6 +83,14 @@ export default {
     placeholder: {
       type: String,
       default: 'Selecione uma opção'
+    },
+    optionSelectPlaceholder: {
+      type: String,
+      default: 'Press enter to select'
+    },
+    optionUnselectPlaceholder: {
+      type: String,
+      default: 'Press enter to unselect'
     },
     label: String,
     required: Boolean,
@@ -295,7 +308,7 @@ export default {
 
 <style lang="scss">
 $vue-coe-select-border-color: #E9EAEE;
-$vue-coe-select-highlight-background: #f3f4f6 !default;
+$vue-coe-select-highlight-background: #F78181 !default;
 
 $c-input-disabled-background-color: #eaedef !default;
 $c-input-disabled-color:            #bdc0d1 !default;
@@ -413,7 +426,6 @@ $c-input-disabled-color:            #bdc0d1 !default;
       z-index: 2;
       width: 100%;
       box-sizing: border-box;
-      background-color: #fff;
       position: absolute;
       left: 0;
       top: calc(100% + 2px);
@@ -440,13 +452,15 @@ $c-input-disabled-color:            #bdc0d1 !default;
           border-bottom-right-radius: 8px;
         }
 
-        & > .text {
+        & > .option-container {
+          width: 100%;
+          display: flex;
+          justify-content: space-between;
           font-size: 14px;
-          color: black;
           transition: color .3s ease;
-          color: black;
-          padding: 10px;
-          padding-left: 12px;
+
+          & > .text { padding-left: 10px; }
+          & > .disclaimer { padding-right: 10px; }
         }
 
         &:hover {
