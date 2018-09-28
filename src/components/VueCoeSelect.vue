@@ -314,7 +314,7 @@ $c-input-disabled-background-color: #eaedef !default;
 $c-input-disabled-color:            #bdc0d1 !default;
 
 .c-select {
-  position: relative;
+  z-index: 1;
 
   &.-disabled {
     cursor: default;
@@ -420,6 +420,7 @@ $c-input-disabled-color:            #bdc0d1 !default;
 
     .items {
       border-radius: 8px;
+      background-color: white.
       max-height: 300px;
       overflow-y: auto;
       overflow-x: hidden;
@@ -442,15 +443,15 @@ $c-input-disabled-color:            #bdc0d1 !default;
         &.-active { background-color: $vue-coe-select-highlight-background; }
         &.-disabled { cursor: not-allowed; }
 
-        &:first-child {
-          border-top-left-radius: 8px;
-          border-top-right-radius: 8px;
-        }
+        // &:first-child {
+        //   border-top-left-radius: 8px;
+        //   border-top-right-radius: 8px;
+        // }
 
-        &:last-child {
-          border-bottom-left-radius: 8px;
-          border-bottom-right-radius: 8px;
-        }
+        // &:last-child {
+        //   border-bottom-left-radius: 8px;
+        //   border-bottom-right-radius: 8px;
+        // }
 
         & > .option-container {
           width: 100%;
