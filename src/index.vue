@@ -85,8 +85,8 @@ export default {
       type: [String, Boolean],
       required: false
     },
+    display: String,
     displayBy: String,
-    trackBy: String,
     multiple: Boolean,
     hideSelected: Boolean,
     clearOnSelect: {
@@ -128,7 +128,7 @@ export default {
 
       const defaultValue = this.value.filter(value => !!this.items.find(item => item !== value))
 
-      return defaultValue.map(value => (this.trackBy && value[this.trackBy]) || value)
+      return defaultValue.map(value => (this.display && value[this.display]) || value)
     },
 
     selected: {
@@ -164,12 +164,14 @@ export default {
           return
         }
 
-        const options = this.hideSelected ? this.hideSelecteds : !this.searchQuery ? this.items : this.options
+        const options = this.hideSelected && !this.searchQuery
+          ? this.hideSelecteds
+          : !this.searchQuery ? this.items : this.options
 
-        const tracked = (options && this.trackBy && options[index][this.trackBy]) || options[index]
+        const tracked = (options && this.display && options[index][this.display]) || options[index]
 
         if (this.multiple) {
-          const value = v => ((this.trackBy && v[this.trackBy]) || v).toString()
+          const value = v => ((this.display && v[this.display]) || v).toString()
 
           if (!this.validation) {
             const exists = v => value(v) === tracked.toString()
@@ -198,8 +200,8 @@ export default {
     },
 
     hideSelecteds () {
-      if (this.multiple && Array.isArray(this.value) && this.trackBy) {
-        return this.items.filter(item => !this.selecteds.includes(item[this.trackBy]))
+      if (this.multiple && Array.isArray(this.value) && this.display) {
+        return this.items.filter(item => !this.selecteds.includes(item[this.display]))
       }
 
       return []
@@ -254,10 +256,10 @@ export default {
     isSelected (option, index) {
       if (!this.selected) return false
 
-      const _option = (this.trackBy && option[this.trackBy]) || option
+      const _option = (this.display && option[this.display]) || option
 
       if (this.multiple) {
-        const _selected = v => ((this.trackBy && v[this.trackBy]) || v).toString() === _option.toString()
+        const _selected = v => ((this.display && v[this.display]) || v).toString() === _option.toString()
 
         return this.value.find(v => _selected(v))
       } else {
