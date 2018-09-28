@@ -85,9 +85,10 @@ export default {
       type: [String, Boolean],
       required: false
     },
-    multiple: Boolean,
     displayBy: String,
     trackBy: String,
+    multiple: Boolean,
+    hideSelected: Boolean,
     clearOnSelect: {
       type: Boolean,
       default: true
@@ -127,11 +128,13 @@ export default {
 
       const defaultValue = this.value.filter(value => !!this.items.find(item => item !== value))
 
-      return defaultValue.map(value => (this.displayBy && value[this.displayBy]) || value)
+      return defaultValue.map(value => (this.trackBy && value[this.trackBy]) || value)
     },
 
     selected: {
       get () {
+        if (this.multiple) return this.selecteds
+
         const value = this.items
           .find(v => v === (Array.isArray(this.value) && this.value && this.displayBy && this.value[this.displayBy]) || this.value)
 
@@ -161,8 +164,9 @@ export default {
           return
         }
 
-        const options = !this.searchQuery ? this.items : this.options
-        const tracked = (this.trackBy && options[index][this.trackBy]) || options[index]
+        const options = this.hideSelected ? this.hideSelecteds : !this.searchQuery ? this.items : this.options
+
+        const tracked = (options && this.trackBy && options[index][this.trackBy]) || options[index]
 
         if (this.multiple) {
           const value = v => ((this.trackBy && v[this.trackBy]) || v).toString()
@@ -172,10 +176,12 @@ export default {
             const alreadyExist = this.value.find(exists)
 
             if (!alreadyExist) {
+              console.log('1')
               this.outside()
 
               this.$emit('input', [ ...this.value, options[index] ])
             } else {
+              console.log('2')
               this.outside()
 
               const repeated = v => value(v) !== tracked.toString()
@@ -193,18 +199,30 @@ export default {
       }
     },
 
+    hideSelecteds () {
+      if (this.multiple && Array.isArray(this.value) && this.trackBy) {
+        return this.items.filter(item => !this.selecteds.includes(item[this.trackBy]))
+      }
+
+      return []
+    },
+
     options () {
       if (this.errors) return this.errors
 
-      return this.searchQuery
-        ? this.items.filter(item => {
+      const items = (this.hideSelected && this.hideSelecteds) || this.items
+
+      if (this.searchQuery) {
+        return items.filter(item => {
           const _item = (this.displayBy && item[this.displayBy]) || item
 
           return typeof _item === 'string'
             ? matches(this.searchQuery.toLowerCase(), _item.toLowerCase())
             : matches(this.searchQuery.toString().toLowerCase(), _item.toString().toLowerCase())
         })
-        : this.items
+      } else {
+        return items
+      }
     }
   },
 
