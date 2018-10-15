@@ -10,7 +10,7 @@
 
 **Install**
 
-`yarn add vue-coe-select@latest`
+`yarn add vue-coe-select`
 
 **Examples**
 ```vue
