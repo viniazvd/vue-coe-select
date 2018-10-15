@@ -17,7 +17,6 @@
 <template>
   <div class="container">
     <c-select
-      label="single"
       display="slug"
       display-by="name"
       placeholder="Selecione uma opção"
@@ -31,7 +30,6 @@
     </c-select>
 
     <c-select
-      label="multiple"
       display="slug"
       display-by="name"
       placeholder="Selecione uma opção"
@@ -42,7 +40,6 @@
     />
 
     <c-select
-      label="multiple"
       display="slug"
       display-by="name"
       placeholder="Selecione uma opção"
