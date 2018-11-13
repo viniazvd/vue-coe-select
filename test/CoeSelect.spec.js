@@ -1,7 +1,7 @@
 import { mount, shallowMount } from '@vue/test-utils'
 // import sinon from 'sinon'
 
-import CoeSelect from '../src/index.vue'
+import CoeSelect from '../src/index.js'
 
 /* eslint-disable */
 describe('CoeSelect', () => {
@@ -29,13 +29,13 @@ describe('CoeSelect', () => {
   test('placeholder', () => {
     const wrapper = shallowMount(CoeSelect, { propsData: { items, placeholder: 'coe' } })
 
-    expect (wrapper.classes('selecteds')).toBe('coe')
+    expect (wrapper.vm.searchableValue[0]).toBe('coe')
   })
 
   // test('open', () => {
   //   const wrapper = mount(CoeSelect, { propsData: { items } })
 
-  //   wrapper.trigger('click.native')
+  //   wrapper.trigger('click')
 
   //   expect(wrapper.vm.isOpened).toBe(true)
   // })
