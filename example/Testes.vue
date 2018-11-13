@@ -2,7 +2,7 @@
   <div id="app" class="container">
     <c-select
       label="single"
-      track-by="slug"
+      display="slug"
       display-by="name"
       placeholder="Selecione uma opção"
       :clear-on-select="false"
@@ -12,7 +12,7 @@
 
     <c-select
       label="single"
-      track-by="slug"
+      display="slug"
       display-by="name"
       placeholder="Selecione uma opção"
       clear-on-select
@@ -26,14 +26,25 @@
 
     <c-select
       label="multiple"
-      track-by="slug"
+      display="slug"
       display-by="name"
       placeholder="Selecione uma opção"
       multiple
+      hide-selected
       :items="items"
       v-model="data3"
     />
-      <!-- :validation="data3.length >= 3 && `Máximo de 3 opções selecionadas`" -->
+
+    <c-select
+      label="multiple"
+      display="slug"
+      display-by="name"
+      placeholder="Selecione uma opção"
+      :validation="data4.length >= 3 && `Máximo de 3 opções selecionadas`"
+      multiple
+      :items="items"
+      v-model="data4"
+    />
   </div>
 </template>
 
@@ -52,6 +63,7 @@ export default {
       data3: [
         { slug: 'slug_boladao2', name: 'coe2' }
       ],
+      data4: [],
       items: [
         { slug: 'slug_boladao1', name: 'coe1' },
         { slug: 'slug_boladao2', name: 'coe2' },

@@ -2,12 +2,6 @@
   "name": "vue-coe-select",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint",
-    "test": "jest"
-  },
   "dependencies": {
     "vue": "^2.5.17"
   },
@@ -52,24 +46,14 @@
       "!**/node_modules/**"
     ]
   },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true
-    },
-    "extends": [
-      "plugin:vue/essential",
-      "@vue/standard"
-    ],
-    "rules": {},
-    "parserOptions": {
-      "parser": "babel-eslint"
-    }
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/viniazvd/vue-coe-select"
   },
-  "postcss": {
-    "plugins": {
-      "autoprefixer": {}
-    }
+  "license": "MIT",
+  "scripts": {
+    "build": "bili",
+    "test": "jest"
   },
   "browserslist": [
     "> 1%",

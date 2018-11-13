@@ -45,7 +45,12 @@
             @mouseenter.self="pointerSet(index)"
           >
             <slot :option="option" name="option">
-              <span class="text">{{ displayBy && option[displayBy] || option }}</span>
+              <div class="option-container">
+                <span class="text">{{ displayBy && option[displayBy] || option }}</span>
+                <span class="disclaimer">
+                  {{ !isSelected(option, index) ? optionSelectPlaceholder : optionUnselectPlaceholder }}
+                </span>
+              </div>
             </slot>
           </div>
         </slot>
@@ -55,12 +60,12 @@
 </template>
 
 <script>
-import Pointer from './mixins/pointer'
-import Searchable from './mixins/searchable'
+import Pointer from '../mixins/pointer'
+import Searchable from '../mixins/searchable'
 
-import clickOutside from './directives/clickOutside'
+import clickOutside from '../directives/clickOutside'
 
-import matches from './utils/matches'
+import matches from '../utils/matches'
 
 export default {
   directives: clickOutside,
@@ -79,15 +84,24 @@ export default {
       type: String,
       default: 'Selecione uma opção'
     },
+    optionSelectPlaceholder: {
+      type: String,
+      default: 'Press enter to select'
+    },
+    optionUnselectPlaceholder: {
+      type: String,
+      default: 'Press enter to unselect'
+    },
     label: String,
     required: Boolean,
     validation: {
       type: [String, Boolean],
       required: false
     },
-    multiple: Boolean,
+    display: String,
     displayBy: String,
-    trackBy: String,
+    multiple: Boolean,
+    hideSelected: Boolean,
     clearOnSelect: {
       type: Boolean,
       default: true
@@ -127,11 +141,13 @@ export default {
 
       const defaultValue = this.value.filter(value => !!this.items.find(item => item !== value))
 
-      return defaultValue.map(value => (this.displayBy && value[this.displayBy]) || value)
+      return defaultValue.map(value => (this.display && value[this.display]) || value)
     },
 
     selected: {
       get () {
+        if (this.multiple) return this.selecteds
+
         const value = this.items
           .find(v => v === (Array.isArray(this.value) && this.value && this.displayBy && this.value[this.displayBy]) || this.value)
 
@@ -161,11 +177,16 @@ export default {
           return
         }
 
-        const options = !this.searchQuery ? this.items : this.options
-        const tracked = (this.trackBy && options[index][this.trackBy]) || options[index]
+        const options = this.hideSelected && !this.searchQuery
+          ? this.hideSelecteds
+          : !this.searchQuery ? this.items : this.options
+
+        if (!options.length) return false
+
+        const tracked = (options && this.display && options[index][this.display]) || options[index]
 
         if (this.multiple) {
-          const value = v => ((this.trackBy && v[this.trackBy]) || v).toString()
+          const value = v => ((this.display && v[this.display]) || v).toString()
 
           if (!this.validation) {
             const exists = v => value(v) === tracked.toString()
@@ -193,18 +214,30 @@ export default {
       }
     },
 
+    hideSelecteds () {
+      if (this.multiple && Array.isArray(this.value) && this.display) {
+        return this.items.filter(item => !this.selecteds.includes(item[this.display]))
+      }
+
+      return []
+    },
+
     options () {
       if (this.errors) return this.errors
 
-      return this.searchQuery
-        ? this.items.filter(item => {
+      const items = (this.hideSelected && this.hideSelecteds) || this.items
+
+      if (this.searchQuery) {
+        return items.filter(item => {
           const _item = (this.displayBy && item[this.displayBy]) || item
 
           return typeof _item === 'string'
             ? matches(this.searchQuery.toLowerCase(), _item.toLowerCase())
             : matches(this.searchQuery.toString().toLowerCase(), _item.toString().toLowerCase())
         })
-        : this.items
+      } else {
+        return items
+      }
     }
   },
 
@@ -238,10 +271,10 @@ export default {
     isSelected (option, index) {
       if (!this.selected) return false
 
-      const _option = (this.trackBy && option[this.trackBy]) || option
+      const _option = (this.display && option[this.display]) || option
 
       if (this.multiple) {
-        const _selected = v => ((this.trackBy && v[this.trackBy]) || v).toString() === _option.toString()
+        const _selected = v => ((this.display && v[this.display]) || v).toString() === _option.toString()
 
         return this.value.find(v => _selected(v))
       } else {
@@ -267,21 +300,21 @@ export default {
     }
   },
 
-  install (Vue, { name = 'vue-coe-selected' } = {}) {
-    Vue.component(name, this)
+  install (Vue) {
+    Vue.component('VueCoeSelect', this)
   }
 }
 </script>
 
 <style lang="scss">
 $vue-coe-select-border-color: #E9EAEE;
-$vue-coe-select-highlight-background: #f3f4f6 !default;
+$vue-coe-select-highlight-background: #F78181 !default;
 
 $c-input-disabled-background-color: #eaedef !default;
 $c-input-disabled-color:            #bdc0d1 !default;
 
 .c-select {
-  position: relative;
+  z-index: 1;
 
   &.-disabled {
     cursor: default;
@@ -380,20 +413,20 @@ $c-input-disabled-color:            #bdc0d1 !default;
       &:hover,
       &:active,
       &:focus {
-        border-color: green;
-        box-shadow: 0 0 0 2px green;
+        border-color: red;
+        box-shadow: 0 0 0 2px red;
       }
     }
 
     .items {
-      border-radius: 8px;
+      z-index: 2;
+      border-radius: 5px;
+      background-color: white;
       max-height: 300px;
       overflow-y: auto;
       overflow-x: hidden;
-      z-index: 2;
       width: 100%;
       box-sizing: border-box;
-      background-color: #fff;
       position: absolute;
       left: 0;
       top: calc(100% + 2px);
@@ -411,22 +444,24 @@ $c-input-disabled-color:            #bdc0d1 !default;
         &.-disabled { cursor: not-allowed; }
 
         &:first-child {
-          border-top-left-radius: 8px;
-          border-top-right-radius: 8px;
+          border-top-left-radius: 5px;
+          border-top-right-radius: 5px;
         }
 
         &:last-child {
-          border-bottom-left-radius: 8px;
-          border-bottom-right-radius: 8px;
+          border-bottom-left-radius: 5px;
+          border-bottom-right-radius: 5px;
         }
 
-        & > .text {
+        & > .option-container {
+          width: 100%;
+          display: flex;
+          justify-content: space-between;
           font-size: 14px;
-          color: black;
           transition: color .3s ease;
-          color: black;
-          padding: 10px;
-          padding-left: 12px;
+
+          & > .text { padding-left: 10px; }
+          & > .disclaimer { padding-right: 10px; }
         }
 
         &:hover {
