@@ -1,6 +1,6 @@
 {
   "name": "vue-coe-select",
-  "version": "0.1.0",
+  "version": "0.1.9",
   "private": true,
   "dependencies": {
     "vue": "^2.5.17"
